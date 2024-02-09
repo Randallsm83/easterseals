@@ -1,0 +1,53 @@
+/* style.css */
+body {
+  text-align: center;
+}
+
+.container {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+form {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
+button[type="submit"] {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 20px;
+  margin: 20px;
+}
+
+button[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+#pointsDisplay {
+  font-size: 5em;
+}
+
+.error-message {
+  color: red;
+  margin-bottom: 10px;
+}

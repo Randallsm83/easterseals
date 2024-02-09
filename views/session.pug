@@ -1,0 +1,42 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Session Page
+    link(rel="stylesheet", type="text/css", href="/stylesheets/style.css")
+    script.
+        const session = !{JSON.stringify(session)};
+        document.addEventListener('DOMContentLoaded', function() {
+          const buttonActive = session.buttonActive;
+          const pointsAwarded = session.pointsAwarded;
+          const clicksNeeded = session.clicksNeeded;
+          const startingPoints = session.startingPoints;
+
+          let clickCount = 0;
+          let totalPoints = startingPoints;
+
+          const buttons = document.querySelectorAll('button[type="submit"]');
+          buttons.forEach(button => {
+            if (button.value !== buttonActive) {
+              button.disabled = true;
+            }
+          });
+
+          document.querySelector('form').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+            clickCount++;
+            if (clickCount >= clicksNeeded) {
+              totalPoints += pointsAwarded;
+              clickCount = 0;
+              document.getElementById('pointsDisplay').innerText = totalPoints;
+            }
+          });
+        });
+  body
+    p(id="pointsDisplay") #{session.startingPoints}
+    br
+    form
+      button(type="submit" name="left" value="left") Click Me
+      button(type="submit" name="right" value="right") Click Me
+
