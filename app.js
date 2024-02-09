@@ -1,14 +1,24 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const port = 8001;
 
-const db = new sqlite3.Database('setup.db');
-
-db.serialize(() => {
-  db.run("CREATE TABLE IF NOT EXISTS setup (id INTEGER PRIMARY KEY AUTOINCREMENT, sessionId TEXT, buttonActive TEXT, pointsAwarded INTEGER, clicksNeeded INTEGER, startingPoints INTEGER, sessionLength INTEGER)");
+const db = new sqlite3.Database('setup.db', (err) => {
+  if (err) {
+    throw err;
+  } else {
+    console.log('Connected to the setup.db database.');
+    db.serialize(() => {
+      db.run("CREATE TABLE IF NOT EXISTS setup (id INTEGER PRIMARY KEY AUTOINCREMENT, sessionId TEXT, buttonActive TEXT, pointsAwarded INTEGER, clicksNeeded INTEGER, startingPoints INTEGER, sessionLength INTEGER)", [], (err) => {
+        if (err) {
+          throw err.message
+        } else {
+          console.log('Table setup is ready.');
+        }
+      });
+    });
+  }
 });
 
 app.set('view engine', 'pug');
