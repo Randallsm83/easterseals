@@ -36,7 +36,11 @@ html(lang="en")
   body
     p(id="pointsDisplay") #{session.startingPoints}
     br
-    form
-      button(type="submit" name="left" value="left") Click Me
-      button(type="submit" name="right" value="right") Click Me
+    form(id="sessionForm")
+      button(type="submit" name="left" value="left"
+          class=session.leftButtonShape) Click Me
+      button(type="submit" name="middle" value="middle"
+          class=session.middleButtonShape disabled) Click Me
+      button(type="submit" name="right" value="right"
+          class=session.rightButtonShape) Click Me
 

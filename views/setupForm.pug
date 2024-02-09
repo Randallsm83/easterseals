@@ -7,26 +7,49 @@ html(lang="en")
     title Setup Form
   body
     .container
-        form(action="/setup", method="POST")
+        form(id="setupForm", action="/setup", method="POST")
           label(for="sessionId") Session ID:
-          input(type="text", name="sessionId", id="sessionId", required)
+          input(type="text", name="sessionId", id="sessionId", required,
+              min="0")
           br
           label(for="buttonActive") Active Button:
           select(name="buttonActive", id="buttonActive", required)
             option(value="left") Left
             option(value="right") Right
           br
+          label(for="leftButtonShape") Left Button Shape:
+          select(name="leftButtonShape", id="leftButtonShape", required)
+            option(value="rectangle") Rectangle
+            option(value="square") Square
+            option(value="circle") Circle
+          br
+          label(for="middleButtonShape") Middle Button Shape:
+          select(name="middleButtonShape", id="middleButtonShape", required)
+            option(value="rectangle") Rectangle
+            option(value="square") Square
+            option(value="circle") Circle
+          br
+          label(for="rightButtonShape") Right Button Shape:
+          select(name="rightButtonShape", id="rightButtonShape", required)
+            option(value="rectangle") Rectangle
+            option(value="square") Square
+            option(value="circle") Circle
+          br
           label(for="pointsAwarded") Points Awarded:
-          input(type="number", name="pointsAwarded", id="pointsAwarded", required)
+          input(type="number", name="pointsAwarded", id="pointsAwarded",
+              required, min="0")
           br
           label(for="clicksNeeded") Clicks Before Points are Awarded:
-          input(type="number", name="clicksNeeded", id="clicksNeeded", required)
+          input(type="number", name="clicksNeeded", id="clicksNeeded",
+              required, min="0")
           br
           label(for="startingPoints") Starting Points:
-          input(type="number", name="startingPoints", id="startingPoints", required)
+          input(type="number", name="startingPoints", id="startingPoints",
+              required, min="0")
           br
           label(for="sessionLength") Session Length (in seconds):
-          input(type="number", name="sessionLength", id="sessionLength", required)
+          input(type="number", name="sessionLength", id="sessionLength",
+              required, min="0")
           br
           button(type="submit") Submit
 
