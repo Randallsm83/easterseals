@@ -1,0 +1,10 @@
+{
+    "uid": "esstudy_app",
+    "append": true,
+    "watch": true,
+    "script": "app.js",
+    "sourceDir": "/home/dh_q8unnk/es.randall.codes",
+    "logFile": "/home/dh_q8unnk/es.randall.codes/logs/forever.log",
+    "outFile": "/home/dh_q8unnk/es.randall.codes/logs/out.log",
+    "errFile": "/home/dh_q8unnk/es.randall.codes/logs/error.log"
+}
