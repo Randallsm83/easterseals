@@ -26,6 +26,17 @@ label {
   margin-bottom: 10px;
 }
 
+.field-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.field-group label,
+.field-group select,
+.field-group input[type="color"] {
+  margin-right: 10px;
+}
+
 input[type="text"],
 input[type="number"],
 select {

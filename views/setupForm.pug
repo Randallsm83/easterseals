@@ -17,23 +17,32 @@ html(lang="en")
             option(value="left") Left
             option(value="right") Right
           br
-          label(for="leftButtonShape") Left Button Shape:
-          select(name="leftButtonShape", id="leftButtonShape", required)
-            option(value="rectangle") Rectangle
-            option(value="square") Square
-            option(value="circle") Circle
+          .field-group
+            label(for="leftButtonShape") Left Button Shape:
+            select(name="leftButtonShape", id="leftButtonShape", required)
+              option(value="rectangle") Rectangle
+              option(value="square") Square
+              option(value="circle") Circle
+            label(for="leftButtonColor") Left Button Color:
+            input(type="color" name="leftButtonColor" id="leftButtonColor" value="#00ff00" required)
           br
-          label(for="middleButtonShape") Middle Button Shape:
-          select(name="middleButtonShape", id="middleButtonShape", required)
-            option(value="rectangle") Rectangle
-            option(value="square") Square
-            option(value="circle") Circle
+          .field-group
+            label(for="middleButtonShape") Middle Button Shape:
+            select(name="middleButtonShape", id="middleButtonShape", required)
+              option(value="rectangle") Rectangle
+              option(value="square") Square
+              option(value="circle") Circle
+            label(for="middleButtonColor") Middle Button Color:
+            input(type="color" name="middleButtonColor" id="middleButtonColor" value="#00ff00" required)
           br
-          label(for="rightButtonShape") Right Button Shape:
-          select(name="rightButtonShape", id="rightButtonShape", required)
-            option(value="rectangle") Rectangle
-            option(value="square") Square
-            option(value="circle") Circle
+          .field-group
+            label(for="rightButtonShape") Right Button Shape:
+            select(name="rightButtonShape", id="rightButtonShape", required)
+              option(value="rectangle") Rectangle
+              option(value="square") Square
+              option(value="circle") Circle
+            label(for="rightButtonColor") Right Button Color:
+            input(type="color" name="rightButtonColor" id="rightButtonColor" value="#00ff00" required)
           br
           label(for="pointsAwarded") Points Awarded:
           input(type="number", name="pointsAwarded", id="pointsAwarded",

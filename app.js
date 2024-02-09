@@ -10,7 +10,7 @@ const db = new sqlite3.Database('setup.db', (err) => {
   } else {
     console.log('Connected to the setup.db database.');
     db.serialize(() => {
-      db.run("CREATE TABLE IF NOT EXISTS setup (id INTEGER PRIMARY KEY AUTOINCREMENT, sessionId TEXT, buttonActive TEXT, leftButtonShape TEXT, middleButtonShape TEXT, rightButtonShape TEXT, pointsAwarded INTEGER, clicksNeeded INTEGER, startingPoints INTEGER, sessionLength INTEGER)", [], (err) => {
+      db.run("CREATE TABLE IF NOT EXISTS setup (id INTEGER PRIMARY KEY AUTOINCREMENT, sessionId TEXT, buttonActive TEXT, leftButtonShape TEXT, leftButtonColor TEXT, middleButtonShape TEXT, middleButtonColor TEXT, rightButtonShape TEXT, rightButtonColor TEXT, pointsAwarded INTEGER, clicksNeeded INTEGER, startingPoints INTEGER, sessionLength INTEGER)", [], (err) => {
         if (err) {
           throw err.message
         } else {
@@ -32,7 +32,7 @@ app.get('/', (req, res) => {
 });
 
 app.post('/setup', (req, res) => {
-  const { sessionId, buttonActive, leftButtonShape, middleButtonShape, rightButtonShape, pointsAwarded, clicksNeeded, startingPoints, sessionLength } = req.body;
+  const { sessionId, buttonActive, leftButtonShape, leftButtonColor, middleButtonShape, middleButtonColor, rightButtonShape, rightButtonColor, pointsAwarded, clicksNeeded, startingPoints, sessionLength } = req.body;
 
   db.get("SELECT * FROM setup WHERE sessionId = ?", [sessionId], (err, row) => {
     if (err) {
@@ -41,8 +41,8 @@ app.post('/setup', (req, res) => {
     } else if (row) {
       res.status(400).send("Session ID already exists. Please enter a different one.");
     } else {
-      db.run("INSERT INTO setup (sessionId, buttonActive, leftButtonShape, middleButtonShape, rightButtonShape, pointsAwarded, clicksNeeded, startingPoints, sessionLength) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [sessionId, buttonActive, leftButtonShape, middleButtonShape, rightButtonShape, pointsAwarded, clicksNeeded, startingPoints, sessionLength],
+      db.run("INSERT INTO setup (sessionId, buttonActive, leftButtonShape, leftButtonColor, middleButtonShape, middleButtonColor, rightButtonShape, rightButtonColor, pointsAwarded, clicksNeeded, startingPoints, sessionLength) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [sessionId, buttonActive, leftButtonShape, leftButtonColor, middleButtonShape, middleButtonColor, rightButtonShape, rightButtonColor, pointsAwarded, clicksNeeded, startingPoints, sessionLength],
         (err) => {
           if (err) {
             console.error(err.message);
