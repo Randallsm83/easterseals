@@ -2,63 +2,70 @@ doctype html
 html(lang="en")
   head
     meta(charset="UTF-8")
-    meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    link(rel="stylesheet", type="text/css", href="/stylesheets/style.css")
+    meta(name="viewport" content="width=device-width initial-scale=1.0")
+    link(rel="stylesheet" type="text/css" href="/stylesheets/style.css")
     title Setup Form
   body
-    .container
-        form(id="setupForm", action="/setup", method="POST")
-          label(for="sessionId") Session ID:
-          input(type="text", name="sessionId", id="sessionId", required,
-              min="0")
+    .main-container
+        form(id="setupForm" action="/setup" method="POST")
+          label(for="sessionId") Session ID
+          input(type="text" name="sessionId" id="sessionId" required)
           br
-          label(for="buttonActive") Active Button:
-          select(name="buttonActive", id="buttonActive", required)
+          label(for="sessionLength") Session Length
+          .session-length-container
+            input(type="number" name="sessionLength" id="sessionLength" required min="0")
+            select(name="sessionLengthType", id="sessionLengthType", required)
+              option(value="seconds") Secs
+              option(value="points") Pts
+          br
+          label(for="buttonActive") Active Button
+          select(name="buttonActive" id="buttonActive" required)
             option(value="left") Left
             option(value="right") Right
           br
-          .field-group
-            label(for="leftButtonShape") Left Button Shape:
-            select(name="leftButtonShape", id="leftButtonShape", required)
+          b
+            label(for="leftButton") Left Button
+          .shape-container
+            label(for="leftButtonShape") Shape
+            select(name="leftButtonShape" id="leftButtonShape" required)
               option(value="rectangle") Rectangle
               option(value="square") Square
               option(value="circle") Circle
-            label(for="leftButtonColor") Left Button Color:
+            label(for="leftButtonColor") Color
             input(type="color" name="leftButtonColor" id="leftButtonColor" value="#00ff00" required)
           br
-          .field-group
-            label(for="middleButtonShape") Middle Button Shape:
-            select(name="middleButtonShape", id="middleButtonShape", required)
+          b
+            label(for="middleButton") Middle Button
+          .shape-container
+            label(for="middleButtonShape") Shape
+            select(name="middleButtonShape" id="middleButtonShape" required)
               option(value="rectangle") Rectangle
               option(value="square") Square
               option(value="circle") Circle
-            label(for="middleButtonColor") Middle Button Color:
+            label(for="middleButtonColor") Color
             input(type="color" name="middleButtonColor" id="middleButtonColor" value="#00ff00" required)
           br
-          .field-group
-            label(for="rightButtonShape") Right Button Shape:
-            select(name="rightButtonShape", id="rightButtonShape", required)
+          b
+            label(for="rightButton") Right Button
+          .shape-container
+            label(for="rightButtonShape") Shape
+            select(name="rightButtonShape" id="rightButtonShape" required)
               option(value="rectangle") Rectangle
               option(value="square") Square
               option(value="circle") Circle
-            label(for="rightButtonColor") Right Button Color:
+            label(for="rightButtonColor") Color
             input(type="color" name="rightButtonColor" id="rightButtonColor" value="#00ff00" required)
           br
-          label(for="pointsAwarded") Points Awarded:
-          input(type="number", name="pointsAwarded", id="pointsAwarded",
-              required, min="0")
+          label(for="pointsAwarded") Points Awarded
+          input(type="number" name="pointsAwarded" id="pointsAwarded"
+              required min="0")
           br
-          label(for="clicksNeeded") Clicks Before Points are Awarded:
-          input(type="number", name="clicksNeeded", id="clicksNeeded",
-              required, min="0")
+          label(for="clicksNeeded") Clicks Before Award
+          input(type="number" name="clicksNeeded" id="clicksNeeded"
+              required min="0")
           br
-          label(for="startingPoints") Starting Points:
-          input(type="number", name="startingPoints", id="startingPoints",
-              required, min="0")
-          br
-          label(for="sessionLength") Session Length (in seconds):
-          input(type="number", name="sessionLength", id="sessionLength",
-              required, min="0")
+          label(for="startingPoints") Starting Points
+          input(type="number" name="startingPoints" id="startingPoints" required min="0")
           br
           button(type="submit") Submit
 

@@ -6,35 +6,62 @@ html(lang="en")
     title Session Page
     link(rel="stylesheet", type="text/css", href="/stylesheets/style.css")
     script.
-        const session = !{JSON.stringify(session)};
-        document.addEventListener('DOMContentLoaded', function() {
-          const buttonActive = session.buttonActive;
-          const pointsAwarded = session.pointsAwarded;
-          const clicksNeeded = session.clicksNeeded;
-          const startingPoints = session.startingPoints;
+      const session = !{JSON.stringify(session)};
+      document.addEventListener('DOMContentLoaded', function() {
+        const buttonActive = session.buttonActive;
+        const pointsAwarded = session.pointsAwarded;
+        const clicksNeeded = session.clicksNeeded;
+        const startingPoints = session.startingPoints;
+        const sessionLength = session.sessionLength;
+        const sessionLengthType = session.sessionLengthType;
 
-          let clickCount = 0;
-          let totalPoints = startingPoints;
 
-          const buttons = document.querySelectorAll('button[type="submit"]');
-          buttons.forEach(button => {
-            if (button.value !== buttonActive) {
-              button.disabled = true;
-            }
-          });
+        const buttons = document.querySelectorAll('button[type="submit"]');
+        const pointsDisplay = document.getElementById('pointsDisplay');
+        const sessionOverDisplay = document.getElementById('sessionOverDisplay');
 
-          document.querySelector('form').addEventListener('submit', async function(event) {
-            event.preventDefault(); // Prevent default form submission
-            clickCount++;
-            if (clickCount >= clicksNeeded) {
-              totalPoints += pointsAwarded;
-              clickCount = 0;
-              document.getElementById('pointsDisplay').innerText = totalPoints;
-            }
-          });
+        let clickCount = 0;
+        let totalPoints = startingPoints;
+
+        buttons.forEach(button => {
+          if (button.value !== buttonActive) {
+            button.disabled = true;
+          }
         });
+
+        function disableButtons() {
+          buttons.forEach(button => button.disabled = true);
+        }
+
+        if (sessionLengthType === 'seconds') {
+          setTimeout(() => {
+            disableButtons();
+             sessionOverDisplay.innerText = "Time limit reached. Session ends.";
+          }, sessionLength * 1000); // Convert seconds to milliseconds
+        }
+
+        document.querySelector('form').addEventListener('submit', async function(event) {
+          event.preventDefault(); // Prevent default form submission
+          clickCount++;
+          if (clickCount >= clicksNeeded) {
+            totalPoints += pointsAwarded;
+
+            if (sessionLengthType === 'points' && totalPoints >= sessionLength) {
+              disableButtons();
+
+              totalPoints = sessionLength;
+
+              sessionOverDisplay.innerText = "Target points reached. Session ends.";
+            }
+
+            clickCount = 0;
+            pointsDisplay.innerText = totalPoints;
+          }
+        });
+      });
   body
     p(id="pointsDisplay") #{session.startingPoints}
+    p(id="sessionOverDisplay" class="error-message")
     br
     form(id="sessionForm")
       button(type="submit" name="left" value="left"

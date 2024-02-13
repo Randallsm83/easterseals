@@ -3,15 +3,15 @@ body {
   text-align: center;
 }
 
-.container {
+.main-container, form#setupForm {
   max-width: 400px;
   margin: 0 auto;
   padding: 20px;
 }
 
 form#setupForm {
-  max-width: 400px;
-  margin: 0 auto;
+  display: block;
+  width: 100%;
 }
 
 form#sessionForm {
@@ -26,23 +26,49 @@ label {
   margin-bottom: 10px;
 }
 
-.field-group {
+.session-length-container {
   display: flex;
-  align-items: center;
+  width: 50%;
+  margin-left: 100px;
+}
+
+.session-length-container select, .session-length-container input[type="number"] {
+  border: 1px solid;
+  height: 34px;
+}
+
+.session-length-container input[type="number"] {
+  flex: 2;
+  border-right: none;
+}
+
+.session-length-container select {
+  flex: 1;
+  padding: 4px 5px;
+  font-size: 0.8em;
   margin-bottom: 10px;
 }
-.field-group label,
-.field-group select,
-.field-group input[type="color"] {
+
+.shape-container {
+  display: flex;
+  align-items: center;
+}
+.shape-container label,
+.shape-container select {
+  width: 60%;
   margin-right: 10px;
+}
+
+.shape-container input[type="color"] {
+  margin-bottom: 10px;
 }
 
 input[type="text"],
 input[type="number"],
-select {
-  width: 100%;
+form select:not(.session-length-select) {
+  width: 50%;
   padding: 8px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   box-sizing: border-box;
 }
 
