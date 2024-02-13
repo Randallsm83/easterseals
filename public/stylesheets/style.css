@@ -1,89 +1,95 @@
-/* style.css */
+/* Base styles */
 body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.main-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-radius: 8px;
   text-align: center;
 }
 
-.main-container, form#setupForm {
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-form#setupForm {
-  display: block;
-  width: 100%;
-}
-
-form#sessionForm {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
 label {
-  display: block;
-  margin-bottom: 10px;
+  /* display: block; */
+  margin-bottom: 5px; /* Increase or adjust as needed */
+  color: #333;
+  font-weight: bold; /* Optional, for better label visibility */
 }
 
-.session-length-container {
-  display: flex;
-  width: 50%;
-  margin-left: 100px;
+.form-group, .input-group {
+  margin: 10px 20px;
 }
 
-.session-length-container select, .session-length-container input[type="number"] {
-  border: 1px solid;
-  height: 34px;
+.input-group input {
+  width: auto; /* Reset to default to avoid full-width inputs */
+  display: inline-block; /* Align items in a row */
+  padding: 10px;
 }
-
-.session-length-container input[type="number"] {
-  flex: 2;
-  border-right: none;
+.input-group select {
+  width: 150px; /* Set a fixed width for dropdowns */
+  margin-right: 10px; /* Consistent spacing */
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-left: 10px;
 }
-
-.session-length-container select {
-  flex: 1;
-  padding: 4px 5px;
-  font-size: 0.8em;
-  margin-bottom: 10px;
+.input-group input[type="number"], .input-group input[type="text"] {
+  flex: 1; /* Take available space */
+  margin-right: 10px; /* Ensure spacing between elements */
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-left: 10px;
 }
-
-.shape-container {
-  display: flex;
-  align-items: center;
-}
-.shape-container label,
-.shape-container select {
-  width: 60%;
-  margin-right: 10px;
-}
-
-.shape-container input[type="color"] {
-  margin-bottom: 10px;
-}
-
-input[type="text"],
-input[type="number"],
-form select:not(.session-length-select) {
-  width: 50%;
-  padding: 8px;
-  margin-bottom: 10px;
-  box-sizing: border-box;
+.input-group input[type="color"] {
+  width: 30px; /* Typically, color inputs don't need to be wide */
+  height: 30px; /* Align height with other inputs */
+  padding: 0; /* Remove padding for color input */
+  vertical-align: middle; /* Align with other form elements */
+  border-radius: 4px;
+  margin-left: 10px;
 }
 
 button[type="submit"] {
-  background-color: #4CAF50;
+  width: 50%;
+  padding: 10px;
+  background-color: #007bff;
   color: white;
-  padding: 10px 20px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  margin: 20px;
+  font-size: 16px;
+  margin: 10xpx;
 }
 
 button[type="submit"]:hover {
-  background-color: #45a049;
+  opacity: 0.8;
+}
+
+#pointsDisplay {
+  text-align: center;
+  font-size: 5em;
+  margin-bottom: 50px;
+}
+
+#sessionOverDisplay {
+  text-align: center;
+  font-size: 1.5em;
+  margin: 20px 0;
+}
+
+.buttons-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 100px; /* Add space between buttons */
+  flex-wrap: wrap; /* Wrap buttons on smaller screens */
 }
 
 button.rectangle {
@@ -91,12 +97,11 @@ button.rectangle {
   height: 47px;
   border-radius: 0;
 }
-
 button.square {
   width: 100px;
   height: 100px;
   border-radius: 0;
-  padding: 10px 20px;
+  padding: 10px;
 }
 
 button.circle {
@@ -106,11 +111,34 @@ button.circle {
   padding: 0;
 }
 
-#pointsDisplay {
-  font-size: 5em;
+/* Fieldset and Legend */
+fieldset {
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px;
+}
+
+legend {
+  padding: 0 10px;
+  color: #007bff;
+  font-size: larger;
 }
 
 .error-message {
   color: red;
   margin-bottom: 10px;
 }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .input-group input, .input-group select {
+    width: 100%; /* Full width on small screens for readability */
+    margin-bottom: 10px; /* Space out vertically */
+  }
+
+  .input-group {
+    flex-direction: column; /* Stack inputs vertically */
+  }
+}
+

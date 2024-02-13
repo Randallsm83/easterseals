@@ -60,14 +60,14 @@ html(lang="en")
         });
       });
   body
-    p(id="pointsDisplay") #{session.startingPoints}
-    p(id="sessionOverDisplay" class="error-message")
-    br
+    p#pointsDisplay #{session.startingPoints}
+    p#sessionOverDisplay(class="error-message")
     form(id="sessionForm")
-      button(type="submit" name="left" value="left"
-          class=session.leftButtonShape style=`background-color: ${session.leftButtonColor};`) Click Me
-      button(type="submit" name="middle" value="middle"
-          class=session.middleButtonShape style=`background-color: ${session.middleButtonColor};` disabled) Click Me
-      button(type="submit" name="right" value="right"
-          class=session.rightButtonShape style=`background-color: ${session.rightButtonColor};`) Click Me
+      .buttons-container
+        button(type="submit" name="left" value="left"
+            class=session.leftButtonShape style=`background-color: ${session.leftButtonColor};`) Click Me
+        button(type="submit" name="middle" value="middle"
+            class=session.middleButtonShape style=`background-color: ${session.middleButtonColor};` disabled) Click Me
+        button(type="submit" name="right" value="right"
+            class=session.rightButtonShape style=`background-color: ${session.rightButtonColor};`) Click Me
 

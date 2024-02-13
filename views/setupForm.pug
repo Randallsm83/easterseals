@@ -2,70 +2,78 @@ doctype html
 html(lang="en")
   head
     meta(charset="UTF-8")
-    meta(name="viewport" content="width=device-width initial-scale=1.0")
-    link(rel="stylesheet" type="text/css" href="/stylesheets/style.css")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    link(rel="stylesheet", type="text/css", href="/stylesheets/style.css")
     title Setup Form
   body
     .main-container
-        form(id="setupForm" action="/setup" method="POST")
-          label(for="sessionId") Session ID
-          input(type="text" name="sessionId" id="sessionId" required)
-          br
-          label(for="sessionLength") Session Length
-          .session-length-container
-            input(type="number" name="sessionLength" id="sessionLength" required min="0")
-            select(name="sessionLengthType", id="sessionLengthType", required)
-              option(value="seconds") Secs
-              option(value="points") Pts
-          br
-          label(for="buttonActive") Active Button
-          select(name="buttonActive" id="buttonActive" required)
-            option(value="left") Left
-            option(value="right") Right
-          br
-          b
+      form(id="setupForm" action="/setup" method="POST")
+        fieldset
+          legend Session Details
+          .form-group
+            label(for="sessionId") ID
+            input(type="text" name="sessionId" id="sessionId" placeholder="Unique identifier" required)
+          .form-group
+            label(for="sessionLength") Length
+            .input-group
+              input(type="number" name="sessionLength" id="sessionLength" placeholder="Duration" required min="0")
+              select(name="sessionLengthType" id="sessionLengthType" required)
+                option(value="seconds") Secs
+                option(value="points") Pts
+
+        fieldset
+          legend Button Configuration
+          .form-group
+            label(for="buttonActive") Active Button
+            select(name="buttonActive" id="buttonActive" required)
+              option(value="left") Left
+              option(value="right") Right
+              option(value="middle") Middle
+
+          .form-group
             label(for="leftButton") Left Button
-          .shape-container
-            label(for="leftButtonShape") Shape
-            select(name="leftButtonShape" id="leftButtonShape" required)
-              option(value="rectangle") Rectangle
-              option(value="square") Square
-              option(value="circle") Circle
-            label(for="leftButtonColor") Color
-            input(type="color" name="leftButtonColor" id="leftButtonColor" value="#00ff00" required)
-          br
-          b
+            .input-group
+              label(for="leftButtonShape") Shape
+              select(name="leftButtonShape" id="leftButtonShape" required)
+                option(value="rectangle") Rectangle
+                option(value="square") Square
+                option(value="circle") Circle
+              label(for="leftButtonColor") Color
+              input(type="color" name="leftButtonColor" id="leftButtonColor" value="#00ff00" required)
+
+          .form-group
             label(for="middleButton") Middle Button
-          .shape-container
-            label(for="middleButtonShape") Shape
-            select(name="middleButtonShape" id="middleButtonShape" required)
-              option(value="rectangle") Rectangle
-              option(value="square") Square
-              option(value="circle") Circle
-            label(for="middleButtonColor") Color
-            input(type="color" name="middleButtonColor" id="middleButtonColor" value="#00ff00" required)
-          br
-          b
+            .input-group
+              label(for="middleButtonShape") Shape
+              select(name="middleButtonShape" id="middleButtonShape" required)
+                option(value="rectangle") Rectangle
+                option(value="square") Square
+                option(value="circle") Circle
+              label(for="middleButtonColor") Color
+              input(type="color" name="middleButtonColor" id="middleButtonColor" value="#00ff00" required)
+
+          .form-group
             label(for="rightButton") Right Button
-          .shape-container
-            label(for="rightButtonShape") Shape
-            select(name="rightButtonShape" id="rightButtonShape" required)
-              option(value="rectangle") Rectangle
-              option(value="square") Square
-              option(value="circle") Circle
-            label(for="rightButtonColor") Color
-            input(type="color" name="rightButtonColor" id="rightButtonColor" value="#00ff00" required)
-          br
-          label(for="pointsAwarded") Points Awarded
-          input(type="number" name="pointsAwarded" id="pointsAwarded"
-              required min="0")
-          br
-          label(for="clicksNeeded") Clicks Before Award
-          input(type="number" name="clicksNeeded" id="clicksNeeded"
-              required min="0")
-          br
-          label(for="startingPoints") Starting Points
-          input(type="number" name="startingPoints" id="startingPoints" required min="0")
-          br
-          button(type="submit") Submit
+            .input-group
+              label(for="rightButtonShape") Shape
+              select(name="rightButtonShape" id="rightButtonShape" required)
+                option(value="rectangle") Rectangle
+                option(value="square") Square
+                option(value="circle") Circle
+              label(for="rightButtonColor") Color
+              input(type="color" name="rightButtonColor" id="rightButtonColor" value="#00ff00" required)
+
+        fieldset
+          legend Rewards Configuration
+          .form-group
+            label(for="pointsAwarded") Points Awarded
+            input(type="number" name="pointsAwarded" id="pointsAwarded" required min="0" placeholder="Points Awarded")
+          .form-group
+            label(for="clicksNeeded") Award Interval
+            input(type="number" name="clicksNeeded" id="clicksNeeded" required min="0" placeholder="Clicks Before Award")
+          .form-group
+            label(for="startingPoints") Starting Points
+            input(type="number" name="startingPoints" id="startingPoints" required min="0" placeholder="Starting Points")
+
+        button(type="submit") Submit
 
