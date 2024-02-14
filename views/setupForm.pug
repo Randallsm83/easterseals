@@ -20,6 +20,9 @@ html(lang="en")
               select(name="sessionLengthType" id="sessionLengthType" required)
                 option(value="seconds") Secs
                 option(value="points") Pts
+          .form-group
+            label(for="continueAfterLimit") Continue Session After Limit?
+            input(type="checkbox" id= "continueAfterLimit" name="continueAfterLimit")
 
         fieldset
           legend Button Configuration

@@ -8,12 +8,14 @@ html(lang="en")
     script.
       const session = !{JSON.stringify(session)};
       document.addEventListener('DOMContentLoaded', function() {
+        const sessionId = session.sessionId;
         const buttonActive = session.buttonActive;
         const pointsAwarded = session.pointsAwarded;
         const clicksNeeded = session.clicksNeeded;
         const startingPoints = session.startingPoints;
         const sessionLength = session.sessionLength;
         const sessionLengthType = session.sessionLengthType;
+        const continueAfterLimit = session.continueAfterLimit;
 
 
         const buttons = document.querySelectorAll('button[type="submit"]');
@@ -23,51 +25,81 @@ html(lang="en")
         let clickCount = 0;
         let totalPoints = startingPoints;
 
-        buttons.forEach(button => {
-          if (button.value !== buttonActive) {
-            button.disabled = true;
-          }
-        });
+        const minutes = sessionLengthType === 'seconds' ? sessionLength / 60 : null;
+        const limitMessage = sessionLengthType === 'points' ? `and you can earn a maximum of ${sessionLength} points.` : `and you have ${minutes} minutes to earn your points.`
+        alert(`Hello! In the following activity you earn points by clicking the buttons. Only certain buttons will award points, ${limitMessage}`);
 
         function disableButtons() {
           buttons.forEach(button => button.disabled = true);
         }
 
+        function handleLimitReached() {
+          const finalPoints = sessionLengthType === 'points' ? sessionLength : totalPoints;
+          fetch('/log-final', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId, finalPoints }),
+          })
+          .catch((error) => {
+            console.error('===Error logging final points:', error);
+          });
+
+          if (!continueAfterLimit) {
+            totalPoints = finalPoints;
+            disableButtons();
+            sessionOverDisplay.innerText = sessionLength === 'points' ? "Max points reached, session ended." : "Time limit reached. Session ended.";
+          }
+        }
+
         if (sessionLengthType === 'seconds') {
           setTimeout(() => {
-            disableButtons();
-             sessionOverDisplay.innerText = "Time limit reached. Session ends.";
+            handleLimitReached();
           }, sessionLength * 1000); // Convert seconds to milliseconds
         }
 
         document.querySelector('form').addEventListener('submit', async function(event) {
-          event.preventDefault(); // Prevent default form submission
-          clickCount++;
-          if (clickCount >= clicksNeeded) {
-            totalPoints += pointsAwarded;
+          event.preventDefault();
 
-            if (sessionLengthType === 'points' && totalPoints >= sessionLength) {
-              disableButtons();
+          const clickedButton = event.submitter.name;
 
-              totalPoints = sessionLength;
+          fetch('/log-click', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId, clickedButton }),
+          })
+          .catch((error) => {
+            console.error('===Error logging click:', error);
+          });
 
-              sessionOverDisplay.innerText = "Target points reached. Session ends.";
+          if (clickedButton === buttonActive) {
+            clickCount++;
+
+            if (clickCount >= clicksNeeded) {
+              totalPoints += pointsAwarded;
+
+              if (sessionLengthType === 'points' && totalPoints >= sessionLength) {
+                handleLimitReached();
+              }
+
+              clickCount = 0;
+              pointsDisplay.innerText = totalPoints;
             }
-
-            clickCount = 0;
-            pointsDisplay.innerText = totalPoints;
           }
         });
       });
   body
     p#pointsDisplay #{session.startingPoints}
-    p#sessionOverDisplay(class="error-message")
     form(id="sessionForm")
       .buttons-container
         button(type="submit" name="left" value="left"
             class=session.leftButtonShape style=`background-color: ${session.leftButtonColor};`) Click Me
         button(type="submit" name="middle" value="middle"
-            class=session.middleButtonShape style=`background-color: ${session.middleButtonColor};` disabled) Click Me
+            class=session.middleButtonShape style=`background-color: ${session.middleButtonColor};`) Click Me
         button(type="submit" name="right" value="right"
             class=session.rightButtonShape style=`background-color: ${session.rightButtonColor};`) Click Me
+    p#sessionOverDisplay(class="error-message")
 
