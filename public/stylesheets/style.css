@@ -18,6 +18,7 @@ body {
 label {
   /* display: block; */
   margin-bottom: 5px; /* Increase or adjust as needed */
+  margin-right: 5px;
   color: #333;
   font-weight: bold; /* Optional, for better label visibility */
 }
@@ -37,7 +38,7 @@ label {
   padding: 5px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  margin-left: 10px;
+  /* margin-left: 10px; */
 }
 .input-group input[type="number"], .input-group input[type="text"] {
   flex: 1; /* Take available space */
@@ -45,7 +46,7 @@ label {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  margin-left: 10px;
+  /* margin-left: 10px; */
 }
 .input-group input[type="color"] {
   width: 30px; /* Typically, color inputs don't need to be wide */
@@ -53,7 +54,7 @@ label {
   padding: 0; /* Remove padding for color input */
   vertical-align: middle; /* Align with other form elements */
   border-radius: 4px;
-  margin-left: 10px;
+  /* margin-left: 10px; */
 }
 
 button[type="submit"] {
@@ -81,7 +82,6 @@ button[type="submit"]:hover {
 #sessionOverDisplay {
   text-align: center;
   font-size: 1.5em;
-  margin: 20px 0;
 }
 
 .buttons-container {
