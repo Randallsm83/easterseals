@@ -125,6 +125,18 @@ legend {
   font-size: larger;
 }
 
+.select-container, .graph-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+.graph-container {
+  margin-top: 20px; /* Add space between the dropdown and the graph */
+}
+
 .error-message {
   color: red;
   margin-bottom: 10px;

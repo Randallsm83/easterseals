@@ -1,160 +1,252 @@
-const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const express = require('express')
+const sqlite3 = require('sqlite3').verbose()
 
-const app = express();
-const port = 8001;
+const app = express()
+const port = 8001
 
 const db = new sqlite3.Database('es.db', (err) => {
   if (err) {
-    throw err;
+    throw err
   } else {
-    console.log('Connected to the database.');
-
-    db.exec('PRAGMA foreign_keys = ON;', function(error)  {
-    if (error){
-        console.error("===ERROR=== Pragma statement didn't work.");
-    } else {
-        console.log("Foreign Key Enforcement is on.");
-    }
-});
-
-    db.serialize(() => {
-      db.run("CREATE TABLE IF NOT EXISTS setup (sessionId TEXT PRIMARY KEY, buttonActive TEXT, leftButtonShape TEXT, leftButtonColor TEXT, middleButtonShape TEXT, middleButtonColor TEXT, rightButtonShape TEXT, rightButtonColor TEXT, pointsAwarded INTEGER, clicksNeeded INTEGER, startingPoints INTEGER, sessionLength INTEGER, sessionLengthType TEXT, continueAfterLimit BOOLEAN)", [], (err) => {
-        if (err) {
-          throw err.message
-        } else {
-          console.log('Setup table setup is ready.');
-        }
-      });
-    });
-
-    db.serialize(() => {
-      db.run("CREATE TABLE IF NOT EXISTS session (sessionId TEXT, clickedButton TEXT, timestamp DATETIME, FOREIGN KEY (sessionId) REFERENCES setup(sessionId))", [], (err) => {
-        if (err) {
-          throw err.message
-        } else {
-          console.log('Session table setup is ready.');
-        }
-      });
-    });
-
-    db.serialize(() => {
-      db.run("CREATE TABLE IF NOT EXISTS final (sessionId TEXT PRIMARY KEY, finalPoints INTEGER, FOREIGN KEY (sessionId) REFERENCES setup(sessionId))", [], (err) => {
-        if (err) {
-          throw err.message
-        } else {
-          console.log('Final table setup is ready.');
-        }
-      });
-    });
+    console.log('Connected to the database.')
   }
-});
 
-app.set('view engine', 'pug');
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  db.serialize(() => {
+    db.run("CREATE TABLE IF NOT EXISTS session (sessionId TEXT, event TEXT, value TEXT, timestamp DATETIME)", [], (err) => {
+      if (err) {
+        throw err.message
+      } else {
+        console.log('Session table setup is ready.')
+      }
+    })
+  })
+})
 
-app.use(express.static('public'));
+app.set('view engine', 'pug')
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
+app.use(express.static('public'))
 
 app.get('/', (req, res) => {
-  res.render('setupForm');
-});
+  res.render('setupForm')
+})
 
 app.post('/setup', (req, res) => {
-  const { sessionId, buttonActive, leftButtonShape, leftButtonColor, middleButtonShape, middleButtonColor, rightButtonShape, rightButtonColor, pointsAwarded, clicksNeeded, startingPoints, sessionLength, sessionLengthType, continueAfterLimit } = req.body;
+  const data = req.body
+  //TODO validation?
 
-  const continueAfterLimitBool = continueAfterLimit === 'on';
-
-  db.get("SELECT * FROM setup WHERE sessionId = ?", [sessionId], (err, row) => {
+  db.get("SELECT * FROM session WHERE sessionId = ?", [data.sessionId], (err, row) => {
     if (err) {
-      console.error(err.message);
-      res.status(500).send("Internal Server Error");
+      console.error(err.message)
+      res.status(500).send("Internal Server Error")
     } else if (row) {
-      res.status(400).send("Session ID already exists. Please enter a different one.");
+      console.error('Session not started, ID already exists.')
+      res.status(400).send("Session ID already exists. Please enter a different one.")
     } else {
-      db.run("INSERT INTO setup (sessionId, buttonActive, leftButtonShape, leftButtonColor, middleButtonShape, middleButtonColor, rightButtonShape, rightButtonColor, pointsAwarded, clicksNeeded, startingPoints, sessionLength, sessionLengthType, continueAfterLimit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [sessionId, buttonActive, leftButtonShape, leftButtonColor, middleButtonShape, middleButtonColor, rightButtonShape, rightButtonColor, pointsAwarded, clicksNeeded, startingPoints, sessionLength, sessionLengthType, continueAfterLimitBool],
-        (err) => {
-          if (err) {
-            console.error(err.message);
-            res.status(500).send("Internal Server Error");
-          } else {
-            res.redirect(`/session/${sessionId}`);
-          }
-      });
+      const timestamp = new Date().toISOString()
+
+      db.run("INSERT INTO session (sessionId, event, value, timestamp) VALUES (?, ?, ?, ?)", [data.sessionId, 'config', JSON.stringify(data), timestamp], (err) => {
+        if (err) {
+          console.error(err.message)
+          res.status(500).send("Internal Server Error")
+        } else {
+          console.log(`Logged config for session ${data.sessionId}`)
+          db.run("INSERT INTO session (sessionId, event, value, timestamp) VALUES (?, ?, ?, ?)", [data.sessionId, 'session', 'start', timestamp], (err) => {
+            if (err) {
+              console.error(err.message)
+            } else {
+              console.log('Logged event session with value start')
+            }
+          })
+
+          res.redirect(`/session/${data.sessionId}`)
+        }
+      })
     }
-  });
-});
+  })
+})
 
 app.get('/session/:sessionId', (req, res) => {
-  const sessionId = req.params.sessionId;
+  const sessionId = req.params.sessionId
 
-  db.get("SELECT * FROM setup WHERE sessionId = ?", [sessionId], (err, row) => {
+  db.get("SELECT value FROM session WHERE sessionId = ? and event = ?", [sessionId, 'config'], (err, config) => {
     if (err) {
-      console.error(err.message);
-      res.status(500).send("Internal Server Error");
-    } else if (!row) {
-      res.status(404).send("Session not found");
+      console.error(err.message)
+      res.status(500).send("Internal Server Error")
+    } else if (!config) {
+      console.error('No config found for session')
+      res.status(404).send("Config not found")
     } else {
-      res.render('session', { session: row });
+      res.render('session', { config: JSON.parse(config.value) })
     }
-  });
-});
+  })
+})
 
-app.post('/log-click', (req, res) => {
-  const { sessionId, clickedButton } = req.body;
-  const timestamp = new Date().toISOString();
+app.post('/log-event', (req, res) => {
+  const { sessionId, event, value } = req.body
+  let timestamp = req.body.timestamp ? req.body.timestamp : new Date().toISOString()
 
-  db.get("SELECT * FROM setup WHERE sessionId = ?", [sessionId], (err, row) => {
+  db.run("INSERT INTO session (sessionId, event, value, timestamp) VALUES (?, ?, ?, ?)", [sessionId, event, value, timestamp], (err) => {
     if (err) {
-      console.error(err.message);
-      res.status(500).send("Internal Server Error");
-    } else if (!row) {
-      res.status(404).send("Invalid session, not found");
+      console.error(err.message)
+      return
     } else {
-      db.run("INSERT INTO session (sessionId, clickedButton, timestamp) VALUES (?, ?, ?)", [sessionId, clickedButton, timestamp], (err) => {
-        if (err) {
-          console.error(err.message);
-        } else {
-          res.send("Logged click");
-        }
-      });
+      console.log(`Logged event ${event} with value ${value}`)
+      res.send("Logged event")
     }
-  });
-});
+  })
+})
 
-app.post('/log-final', (req, res) => {
-  const { sessionId, finalPoints } = req.body;
+app.get('/graphs', (req, res) => {
+  const query = `SELECT DISTINCT sessionId FROM session ORDER BY sessionId ASC`
 
-  db.get("SELECT * FROM setup WHERE sessionId = ?", [sessionId], (err, row) => {
+  db.all(query, [], (err, rows) => {
     if (err) {
-      console.error(err.message);
-      res.status(500).send("Internal Server Error");
-    } else if (!row) {
-      res.status(404).send("Invalid session, not found");
-    }
-  });
-  db.get("SELECT * FROM final WHERE sessionId = ?", [sessionId], (err, row) => {
-    if (err) {
-      console.error(err.message);
-      return res.status(500).send("Internal Server Error");
-    } else if (row) {
-      console.error(`Session ${sessionId} already has points? Final of ${finalPoints} not entered.`);
-      res.status(500).send("Points already exist in the database for this session?");
-    }
-  });
-
-  db.run("INSERT INTO final (sessionId, finalPoints) VALUES (?, ?)", [sessionId, finalPoints], (err) => {
-    if (err) {
-      console.error(err.message);
+      console.error(err.message)
+      res.status(500).send("Internal Server Error")
     } else {
-      console.log(`Logged ${finalPoints} points for session ${sessionId}`);
-      res.send(`Logged ${finalPoints} points for session ${sessionId}`);
+      res.render('sessionGraphs', { data: rows })
     }
-  });
-});
+  })
+})
+
+app.get('/graphs/:sessionId', async (req, res) => {
+  const sessionId = req.params.sessionId
+
+  try {
+    // Session Config
+    const sessionConfig = await new Promise((resolve, reject) => {
+      db.get("SELECT value FROM session WHERE sessionId = ? AND event = 'config' LIMIT 1", [sessionId], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+
+    // Session Start Time
+    const startTime = await new Promise((resolve, reject) => {
+      db.get("SELECT timestamp FROM session WHERE sessionId = ? AND event = 'session' AND value = 'start' ORDER BY timestamp ASC LIMIT 1", [sessionId], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+
+    // Session End Time (Limit Reached)
+    const endTime = await new Promise((resolve, reject) => {
+      db.get("SELECT timestamp FROM session WHERE sessionId = ? AND event = 'session' AND value = 'end' ORDER BY timestamp DESC LIMIT 1", [sessionId], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+
+    // First Click
+    const firstClick = await new Promise((resolve, reject) => {
+      db.get("SELECT timestamp, value FROM session WHERE sessionId = ? AND event = 'click' ORDER BY timestamp ASC LIMIT 1", [sessionId], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+
+    // Last Click
+    const lastClick = await new Promise((resolve, reject) => {
+      db.get("SELECT timestamp, value FROM session WHERE sessionId = ? AND event = 'click' ORDER BY timestamp DESC LIMIT 1", [sessionId], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+
+    // Time To First Click
+    let timeToFirstClick
+    if (startTime && firstClick) {
+      timeToFirstClick = new Date(firstClick.timestamp) - new Date(startTime.timestamp)
+    }
+
+     // All Clicks
+    const allClicks = await new Promise((resolve, reject) => {
+      db.all("SELECT timestamp, value FROM session WHERE sessionId = ? AND event = 'click' ORDER BY timestamp ASC", [sessionId], (err, rows) => {
+        if (err) reject(err)
+        else resolve(rows)
+      })
+    })
+
+    // Count of Each Button Clicked
+    // const buttonCounts = await new Promise((resolve, reject) => {
+      // db.all("SELECT value, COUNT(*) as count FROM session WHERE sessionId = ? AND event = 'click' GROUP BY value", [sessionId], (err, rows) => {
+        // if (err) reject(err)
+        // else resolve(rows)
+      // })
+    // })
+    // const buttonCountsHash = buttonCounts.reduce((acc, current) => {
+      // acc[current.value] = current.count
+      // return acc
+    // }, {})
+
+    // Add Total Clicks Overall
+    // const totalClicks = buttonCounts.reduce((acc, current) => acc + current.count, 0)
+    // buttonCountsHash['total'] = totalClicks
+
+    // Points Awarded
+    const pointsAwarded = await new Promise((resolve, reject) => {
+      db.all("SELECT timestamp, value FROM session WHERE sessionId = ? AND event = 'pointsAwarded' ORDER BY timestamp ASC", [sessionId], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+
+    // Points Tally
+    const pointsTally = await new Promise((resolve, reject) => {
+      db.all("SELECT timestamp, value FROM session WHERE sessionId = ? AND event = 'pointsTally' ORDER BY timestamp ASC", [sessionId], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+
+    // Final Points
+    const pointsFinal = await new Promise((resolve, reject) => {
+      db.get("SELECT value FROM session WHERE sessionId = ? AND event = 'pointsFinal' LIMIT 1", [sessionId], (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+
+    const responseData = {
+      sessionConfig: sessionConfig ? sessionConfig.value : null,
+      startTime: startTime ? startTime.timestamp : null,
+      endTime: endTime ? endTime.timestamp : null,
+      firstClick: firstClick,// ? firstClick : null,
+      lastClick: lastClick,// ? firstClick : null,
+      timeToFirstClick: timeToFirstClick ? timeToFirstClick / 1000 : null,
+      allClicks: allClicks,
+      // buttonCounts: buttonCountsHash,
+      pointsAwarded,
+      pointsTally,
+      pointsFinal: pointsFinal ? pointsFinal.value : null,
+    }
+    console.log(responseData)
+
+    res.json(responseData)
+  } catch (error) {
+    console.error('Error fetching session data:', error)
+    res.status(500).send("Internal Server Error")
+  }
+})
+
+// app.get('/session/logs/:sessionId', (req, res) => {
+  // const { sessionId } = req.params
+//
+  // const query = `SELECT event, timestamp FROM session WHERE sessionId = ? AND event IN ('start', 'click', 'final') ORDER BY timestamp ASC`
+//
+  // db.all(query, [sessionId], (err, rows) => {
+    // if (err) {
+      // console.error(err.message)
+      // res.status(500).send("Internal Server Error")
+    // } else {
+      // res.json(rows)
+    // }
+  // })
+// })
 
 app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
-});
+  console.log(`Server listening at http://localhost:${port}`)
+})
 

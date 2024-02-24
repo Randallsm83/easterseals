@@ -1,0 +1,48 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Session Data
+    script(src="https://cdn.jsdelivr.net/npm/chart.js")
+    script(src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns")
+    link(rel="stylesheet", type="text/css", href="/stylesheets/style.css")
+    script.
+      const data = !{JSON.stringify(data)}
+      document.addEventListener('DOMContentLoaded', function() {
+        document.querySelector('select[name="sessionId"]').addEventListener('change', (e) => {
+          fetchDataForSession(event.target.value)
+        })
+
+        //- let buttonCountsChart = null
+        //- let clickTimestampsChart = null
+
+        function updateCharts(sessionData) {
+        }
+
+
+        function fetchDataForSession(sessionId) {
+          if (!sessionId) return
+
+          fetch(`/graphs/${sessionId}`)
+          .then(response => response.json())
+          .then(sessionData => {
+            console.log(sessionData)
+            updateCharts(sessionData)
+          })
+          .catch(error => console.error('Error fetching session data:', error))
+        }
+      })
+  body
+    .main-container
+      h1 Session Data
+      .select-container
+        select(name="sessionId")
+          option(value="") Select a Session
+          each sessionId in data
+            option(value=sessionId.sessionId)= sessionId.sessionId
+      .graph-container
+        h2 Button Clicks
+        canvas#buttonCountsGraph(width="400", height="400")
+        h2 Click Timestamps
+        canvas#clickTimestampsGraph(width="400", height="400")

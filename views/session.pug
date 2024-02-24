@@ -6,100 +6,144 @@ html(lang="en")
     title Session Page
     link(rel="stylesheet", type="text/css", href="/stylesheets/style.css")
     script.
-      const session = !{JSON.stringify(session)};
+      const config = !{JSON.stringify(config)}
       document.addEventListener('DOMContentLoaded', function() {
-        const sessionId = session.sessionId;
-        const buttonActive = session.buttonActive;
-        const pointsAwarded = session.pointsAwarded;
-        const clicksNeeded = session.clicksNeeded;
-        const startingPoints = session.startingPoints;
-        const sessionLength = session.sessionLength;
-        const sessionLengthType = session.sessionLengthType;
-        const continueAfterLimit = session.continueAfterLimit;
+        const sessionId = config.sessionId
+        const buttonActive = config.buttonActive
+        const pointsAwarded = +config.pointsAwarded
+        const clicksNeeded = +config.clicksNeeded
+        const startingPoints = +config.startingPoints
+        const sessionLength = +config.sessionLength
+        const sessionLengthType = config.sessionLengthType
+        const continueAfterLimit = config.continueAfterLimit === 'on'
 
 
-        const buttons = document.querySelectorAll('button[type="submit"]');
-        const pointsDisplay = document.getElementById('pointsDisplay');
-        const sessionOverDisplay = document.getElementById('sessionOverDisplay');
+        const buttons = document.querySelectorAll('button[type="submit"]')
+        const pointsDisplay = document.getElementById('pointsDisplay')
+        const sessionOverDisplay = document.getElementById('sessionOverDisplay')
 
-        let clickCount = 0;
-        let totalPoints = startingPoints;
-
-        const minutes = sessionLengthType === 'seconds' ? sessionLength / 60 : null;
-        const limitMessage = sessionLengthType === 'points' ? `and you can earn a maximum of ${sessionLength} points.` : `and you have ${minutes} minutes to earn your points.`
-        alert(`Hello! In the following activity you earn points by clicking the buttons. Only certain buttons will award points, ${limitMessage}`);
+        let clickCount = 0
+        let totalPoints = startingPoints
+        let limitReached = false
 
         function disableButtons() {
-          buttons.forEach(button => button.disabled = true);
+          buttons.forEach(button => button.disabled = true)
         }
 
         function handleLimitReached() {
-          const finalPoints = sessionLengthType === 'points' ? sessionLength : totalPoints;
-          fetch('/log-final', {
+          const finalPoints = sessionLengthType === 'points' ? sessionLength : totalPoints
+          fetch('/log-event', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ sessionId, finalPoints }),
+            body: JSON.stringify({ sessionId, event:'pointsFinal', value: finalPoints }),
           })
           .catch((error) => {
-            console.error('===Error logging final points:', error);
-          });
+            console.error('===Error logging final points:', error)
+          })
+
+          fetch('/log-event', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId, event:'session', value: 'end' }),
+          })
+          .catch((error) => {
+            console.error('===Error logging session end:', error)
+          })
 
           if (!continueAfterLimit) {
-            totalPoints = finalPoints;
-            disableButtons();
-            sessionOverDisplay.innerText = sessionLength === 'points' ? "Max points reached, session ended." : "Time limit reached. Session ended.";
+            totalPoints = finalPoints
+            disableButtons()
+            sessionOverDisplay.innerText = sessionLength === 'points' ? "Max points reached, session ended." : "Time limit reached. Session ended."
           }
-        }
 
-        if (sessionLengthType === 'seconds') {
-          setTimeout(() => {
-            handleLimitReached();
-          }, sessionLength * 1000); // Convert seconds to milliseconds
+          limitReached = true
         }
 
         document.querySelector('form').addEventListener('submit', async function(event) {
-          event.preventDefault();
+          event.preventDefault()
 
-          const clickedButton = event.submitter.name;
+          const timestamp = new Date().toISOString()
+          const clickedButton = event.submitter.name
 
-          fetch('/log-click', {
+          fetch('/log-event', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ sessionId, clickedButton }),
+            body: JSON.stringify({ sessionId, event: 'click', value: clickedButton, timestamp }),
           })
           .catch((error) => {
-            console.error('===Error logging click:', error);
-          });
+            console.error('===Error logging click:', error)
+          })
 
           if (clickedButton === buttonActive) {
-            clickCount++;
+            clickCount++
 
             if (clickCount >= clicksNeeded) {
-              totalPoints += pointsAwarded;
+              totalPoints += pointsAwarded
 
-              if (sessionLengthType === 'points' && totalPoints >= sessionLength) {
-                handleLimitReached();
+              if (!limitReached && sessionLengthType === 'points' && totalPoints >= sessionLength) {
+                handleLimitReached()
               }
 
-              clickCount = 0;
-              pointsDisplay.innerText = totalPoints;
+              clickCount = 0
+              pointsDisplay.innerText = totalPoints
+
+              if (!limitReached) {
+                fetch('/log-event', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ sessionId, event: 'pointsAwarded', value: pointsAwarded, timestamp }),
+                })
+                .catch((error) => {
+                  console.error('===Error logging points awarded:', error)
+                })
+
+                fetch('/log-event', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ sessionId, event: 'pointsTally', value: totalPoints, timestamp }),
+                })
+                .catch((error) => {
+                  console.error('===Error logging current points tally:', error)
+                })
+              }
             }
           }
-        });
-      });
+        })
+
+        if (sessionLengthType === 'seconds') {
+          setTimeout(() => {
+            handleLimitReached()
+          }, sessionLength * 1000) // Convert seconds to milliseconds
+        }
+
+        fetch('/log-event', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sessionId, event: 'pointsTally', value: startingPoints}),
+        })
+        .catch((error) => {
+          console.error('===Error logging starting points tally:', error)
+        })
+      })
   body
-    p#pointsDisplay #{session.startingPoints}
-    form(id="sessionForm")
-      .buttons-container
-        button(type="submit" name="left" value="left"
-            class=session.leftButtonShape style=`background-color: ${session.leftButtonColor};`) Click Me
-        button(type="submit" name="middle" value="middle"
-            class=session.middleButtonShape style=`background-color: ${session.middleButtonColor};`) Click Me
-        button(type="submit" name="right" value="right"
-            class=session.rightButtonShape style=`background-color: ${session.rightButtonColor};`) Click Me
-    p#sessionOverDisplay(class="error-message")
+    .main-container
+      p#pointsDisplay #{config.startingPoints}
+      form(id="sessionForm")
+        .buttons-container
+          button(type="submit" name="left" value="left" class=config.leftButtonShape style=`background-color: ${config.leftButtonColor}`) Click Me
+          button(type="submit" name="middle" value="middle" class=config.middleButtonShape style=`background-color: ${config.middleButtonColor}`) Click Me
+          button(type="submit" name="right" value="right" class=config.rightButtonShape style=`background-color: ${config.rightButtonColor}`) Click Me
+      p#sessionOverDisplay(class="error-message")
 
