@@ -14,12 +14,90 @@ html(lang="en")
           fetchDataForSession(event.target.value)
         })
 
-        //- let buttonCountsChart = null
-        //- let clickTimestampsChart = null
+        let clickDistributionChart = null
 
         function updateCharts(sessionData) {
-        }
+          const sessionStartTime = new Date(sessionData.startTime).getTime()
+          const sessionEndTime = new Date(sessionData.endTime).getTime()
 
+          // Click Distribution
+          const clicksOverTime = {left: [], middle: [], right: [], total: []}
+          let totalClicks = 0
+
+          sessionData.allClicks.forEach(click => {
+            const clickTime = new Date(click.timestamp).getTime()
+            const elapsedTime = (clickTime - sessionStartTime) / 1000; // Convert to seconds
+
+            if (!clicksOverTime[click.value]) {
+              clicksOverTime[click.value] = [];
+            }
+
+            let lastCount = clicksOverTime[click.value].length > 0 ? clicksOverTime[click.value][clicksOverTime[click.value].length - 1].y : 0;
+            clicksOverTime[click.value].push({x: elapsedTime, y: lastCount + 1});
+
+            totalClicks++;
+            clicksOverTime.total.push({x: elapsedTime, y: totalClicks});
+          })
+
+          if (clickDistributionChart) {
+            clickDistributionChart.destroy()
+          }
+
+          const ctx = document.getElementById('clickDistributionChart').getContext('2d')
+          clickDistributionChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              datasets: [
+                {
+                  label: 'Left Clicks',
+                  data: clicksOverTime.left,
+                  borderColor: 'red',
+                  borderWidth: 1,
+                  fill: false,
+                },
+                {
+                  label: 'Middle Clicks',
+                  data: clicksOverTime.middle,
+                  borderColor: 'blue',
+                  borderWidth: 1,
+                  fill: false,
+                },
+                {
+                  label: 'Right Clicks',
+                  data: clicksOverTime.right,
+                  borderColor: 'green',
+                  borderWidth: 1,
+                  fill: false,
+                },
+                {
+                  label: 'Total Clicks',
+                  data: clicksOverTime.total,
+                  borderColor: 'black',
+                  borderWidth: 1,
+                  fill: false,
+                  showLine: false,
+                }
+              ]
+            },
+            options: {
+              scales: {
+                x: {
+                  type: 'linear',
+                  position: 'bottom',
+                  min: 0,
+                  max: Math.floor((sessionEndTime - sessionStartTime) / 1000),
+                  title: {
+                    display: true,
+                    text: 'Time Elapsed (seconds)'
+                  }
+                },
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }
+          })
+        }
 
         function fetchDataForSession(sessionId) {
           if (!sessionId) return
@@ -42,7 +120,5 @@ html(lang="en")
           each sessionId in data
             option(value=sessionId.sessionId)= sessionId.sessionId
       .graph-container
-        h2 Button Clicks
-        canvas#buttonCountsGraph(width="400", height="400")
-        h2 Click Timestamps
-        canvas#clickTimestampsGraph(width="400", height="400")
+        h2 Click Distribution
+        canvas#clickDistributionChart(width="800", height="600")

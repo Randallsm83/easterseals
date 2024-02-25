@@ -170,20 +170,20 @@ app.get('/graphs/:sessionId', async (req, res) => {
     })
 
     // Count of Each Button Clicked
-    // const buttonCounts = await new Promise((resolve, reject) => {
-      // db.all("SELECT value, COUNT(*) as count FROM session WHERE sessionId = ? AND event = 'click' GROUP BY value", [sessionId], (err, rows) => {
-        // if (err) reject(err)
-        // else resolve(rows)
-      // })
-    // })
-    // const buttonCountsHash = buttonCounts.reduce((acc, current) => {
-      // acc[current.value] = current.count
-      // return acc
-    // }, {})
+    const buttonCounts = await new Promise((resolve, reject) => {
+      db.all("SELECT value, COUNT(*) as count FROM session WHERE sessionId = ? AND event = 'click' GROUP BY value", [sessionId], (err, rows) => {
+        if (err) reject(err)
+        else resolve(rows)
+      })
+    })
+    const buttonCountsHash = buttonCounts.reduce((acc, current) => {
+      acc[current.value] = current.count
+      return acc
+    }, {})
 
     // Add Total Clicks Overall
-    // const totalClicks = buttonCounts.reduce((acc, current) => acc + current.count, 0)
-    // buttonCountsHash['total'] = totalClicks
+    const totalClicks = buttonCounts.reduce((acc, current) => acc + current.count, 0)
+    buttonCountsHash['total'] = totalClicks
 
     // Points Awarded
     const pointsAwarded = await new Promise((resolve, reject) => {
@@ -217,12 +217,12 @@ app.get('/graphs/:sessionId', async (req, res) => {
       lastClick: lastClick,// ? firstClick : null,
       timeToFirstClick: timeToFirstClick ? timeToFirstClick / 1000 : null,
       allClicks: allClicks,
-      // buttonCounts: buttonCountsHash,
+      buttonCounts: buttonCountsHash,
       pointsAwarded,
       pointsTally,
       pointsFinal: pointsFinal ? pointsFinal.value : null,
     }
-    console.log(responseData)
+    // console.log(responseData)
 
     res.json(responseData)
   } catch (error) {
