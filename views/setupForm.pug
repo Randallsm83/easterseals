@@ -7,7 +7,6 @@ html(lang="en")
     title Setup Form
   body
     .main-container
-      a(href='/graphs') View Graphs
       form(id="setupForm" action="/setup" method="POST")
         fieldset
           legend Session Details
@@ -79,4 +78,6 @@ html(lang="en")
             input(type="number" name="startingPoints" id="startingPoints" required min="0" placeholder="Starting Points")
 
         button(type="submit") Submit
+        p
+          a(href='/graphs') View Graphs
 

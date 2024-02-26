@@ -17,107 +17,90 @@ html(lang="en")
         const sessionLengthType = config.sessionLengthType
         const continueAfterLimit = config.continueAfterLimit === 'on'
 
+        let clickInfo = {
+          total: 0,
+          left: 0,
+          middle: 0,
+          right: 0,
+          buttonClicked: '',
+          awardedPoints: 0
+        }
+        let sessionInfo = {
+          pointsCounter: startingPoints,
+          pointsEarnedFinal: 0,
+          limitReached: false
+        }
 
         const buttons = document.querySelectorAll('button[type="submit"]')
         const pointsDisplay = document.getElementById('pointsDisplay')
         const sessionOverDisplay = document.getElementById('sessionOverDisplay')
 
-        let clickCount = 0
-        let totalPoints = startingPoints
-        let limitReached = false
-
-        function disableButtons() {
-          buttons.forEach(button => button.disabled = true)
-        }
-
         function handleLimitReached() {
-          const finalPoints = sessionLengthType === 'points' ? sessionLength : totalPoints
-          fetch('/log-event', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ sessionId, event:'pointsFinal', value: finalPoints }),
-          })
-          .catch((error) => {
-            console.error('===Error logging final points:', error)
-          })
+          sessionInfo.limitReached = true
+
+          if (!continueAfterLimit) {
+            buttons.forEach(button => button.disabled = true)
+
+            sessionOverDisplay.innerText = sessionLengthType === 'points' ? "Max points reached, session ended." : "Time limit reached. Session ended."
+          }
+
+          sessionInfo.pointsEarnedFinal = sessionInfo.pointsCounter
 
           fetch('/log-event', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ sessionId, event:'session', value: 'end' }),
+            body: JSON.stringify({ sessionId, event: 'end', value: sessionInfo }),
           })
           .catch((error) => {
             console.error('===Error logging session end:', error)
           })
-
-          if (!continueAfterLimit) {
-            totalPoints = finalPoints
-            disableButtons()
-            sessionOverDisplay.innerText = sessionLength === 'points' ? "Max points reached, session ended." : "Time limit reached. Session ended."
-          }
-
-          limitReached = true
         }
 
+        let clickIntervalCounter = 0
         document.querySelector('form').addEventListener('submit', async function(event) {
           event.preventDefault()
 
           const timestamp = new Date().toISOString()
           const clickedButton = event.submitter.name
 
+          clickInfo['buttonClicked'] = clickedButton
+          clickInfo[clickedButton]++
+          clickInfo.total++
+
+          if (clickedButton === buttonActive) clickIntervalCounter++
+
+          if (clickIntervalCounter >= clicksNeeded) {
+            clickIntervalCounter = 0
+
+            if (!sessionInfo.limitReached) {
+              clickInfo.awardedPoints = pointsAwarded
+            }
+            sessionInfo.pointsCounter += pointsAwarded
+
+            if (!sessionInfo.limitReached && sessionLengthType === 'points' && sessionInfo.pointsCounter >= sessionLength) {
+              clickInfo.awardedPoints =  sessionInfo.pointsCounter - sessionLength
+              sessionInfo.pointsCounter = sessionLength
+              handleLimitReached()
+            }
+
+            pointsDisplay.innerText = sessionInfo.pointsCounter
+          }
+
           fetch('/log-event', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ sessionId, event: 'click', value: clickedButton, timestamp }),
+            body: JSON.stringify({ sessionId, event: 'click', value: {...clickInfo, ...sessionInfo}, timestamp }),
           })
           .catch((error) => {
             console.error('===Error logging click:', error)
           })
 
-          if (clickedButton === buttonActive) {
-            clickCount++
-
-            if (clickCount >= clicksNeeded) {
-              totalPoints += pointsAwarded
-
-              if (!limitReached && sessionLengthType === 'points' && totalPoints >= sessionLength) {
-                handleLimitReached()
-              }
-
-              clickCount = 0
-              pointsDisplay.innerText = totalPoints
-
-              if (!limitReached) {
-                fetch('/log-event', {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ sessionId, event: 'pointsAwarded', value: pointsAwarded, timestamp }),
-                })
-                .catch((error) => {
-                  console.error('===Error logging points awarded:', error)
-                })
-
-                fetch('/log-event', {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ sessionId, event: 'pointsTally', value: totalPoints, timestamp }),
-                })
-                .catch((error) => {
-                  console.error('===Error logging current points tally:', error)
-                })
-              }
-            }
-          }
+          clickInfo.awardedPoints = 0
+          clickInfo.buttonClicked = ''
         })
 
         if (sessionLengthType === 'seconds') {
@@ -131,10 +114,10 @@ html(lang="en")
           headers: {
               'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ sessionId, event: 'pointsTally', value: startingPoints}),
+          body: JSON.stringify({ sessionId, event: 'start', value: sessionInfo }),
         })
         .catch((error) => {
-          console.error('===Error logging starting points tally:', error)
+          console.error('===Error logging session start:', error)
         })
       })
   body

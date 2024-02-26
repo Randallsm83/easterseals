@@ -4,8 +4,7 @@ html(lang="en")
     meta(charset="UTF-8")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
     title Session Data
-    script(src="https://cdn.jsdelivr.net/npm/chart.js")
-    script(src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns")
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.js")
     link(rel="stylesheet", type="text/css", href="/stylesheets/style.css")
     script.
       const data = !{JSON.stringify(data)}
@@ -14,89 +13,68 @@ html(lang="en")
           fetchDataForSession(event.target.value)
         })
 
-        let clickDistributionChart = null
-
         function updateCharts(sessionData) {
-          const sessionStartTime = new Date(sessionData.startTime).getTime()
-          const sessionEndTime = new Date(sessionData.endTime).getTime()
+          const transformedData = sessionData.allClicks.map(click => {
+            const valueObj = JSON.parse(click.value);
+            return {
+                timestamp: new Date(click.timestamp),
+                totalClicks: valueObj.total, // Cumulative total clicks
+                left: valueObj.left,
+                middle: valueObj.middle,
+                right: valueObj.right,
+                awardedPoints: valueObj.awardedPoints, // Points awarded for this specific click
+                totalPoints: valueObj.pointsCounter // Cumulative total points
+            };
+          });
+          console.log(transformedData)
 
-          // Click Distribution
-          const clicksOverTime = {left: [], middle: [], right: [], total: []}
-          let totalClicks = 0
+          const margin = {top: 20, right: 20, bottom: 30, left: 50},
+            width = 960 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
 
-          sessionData.allClicks.forEach(click => {
-            const clickTime = new Date(click.timestamp).getTime()
-            const elapsedTime = (clickTime - sessionStartTime) / 1000; // Convert to seconds
+          // Append the svg object to the body of the page
+          const svg = d3.select("#clickGraph")
+            .append("svg")
+              .attr("width", width + margin.left + margin.right)
+              .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+              .attr("transform",
+                    "translate(" + margin.left + "," + margin.top + ")");
 
-            if (!clicksOverTime[click.value]) {
-              clicksOverTime[click.value] = [];
-            }
+          // X scale will use the timestamp of each click event
+          const x = d3.scaleTime()
+            .domain(d3.extent(transformedData, d => d.timestamp))
+            .range([ 0, width ]);
+          svg.append("g")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
 
-            let lastCount = clicksOverTime[click.value].length > 0 ? clicksOverTime[click.value][clicksOverTime[click.value].length - 1].y : 0;
-            clicksOverTime[click.value].push({x: elapsedTime, y: lastCount + 1});
+          // Add Y axis for clicks
+          const yLeft = d3.scaleLinear()
+            .domain([0, d3.max(transformedData, d => Math.max(d.left, d.middle, d.right))])
+            .range([ height, 0 ]);
+          svg.append("g")
+            .call(d3.axisLeft(yLeft));
 
-            totalClicks++;
-            clicksOverTime.total.push({x: elapsedTime, y: totalClicks});
-          })
+          // Optional: Add Y axis for points on the right
+          const yRight = d3.scaleLinear()
+            .domain([0, d3.max(transformedData, d => d.awardedPoints)])
+            .range([ height, 0 ]);
+          svg.append("g")
+            .attr("transform", `translate(${width},0)`)
+            .call(d3.axisRight(yRight));
 
-          if (clickDistributionChart) {
-            clickDistributionChart.destroy()
-          }
+          // Add paths for each button type
+          // Example for left clicks
+          const lineLeft = d3.line()
+            .x(d => x(d.timestamp))
+            .y(d => yLeft(d.left));
+          svg.append("path")
+            .datum(transformedData)
+            .attr("fill", "none")
+            .attr("stroke", "green")
+            .attr("d", lineLeft);
 
-          const ctx = document.getElementById('clickDistributionChart').getContext('2d')
-          clickDistributionChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-              datasets: [
-                {
-                  label: 'Left Clicks',
-                  data: clicksOverTime.left,
-                  borderColor: 'red',
-                  borderWidth: 1,
-                  fill: false,
-                },
-                {
-                  label: 'Middle Clicks',
-                  data: clicksOverTime.middle,
-                  borderColor: 'blue',
-                  borderWidth: 1,
-                  fill: false,
-                },
-                {
-                  label: 'Right Clicks',
-                  data: clicksOverTime.right,
-                  borderColor: 'green',
-                  borderWidth: 1,
-                  fill: false,
-                },
-                {
-                  label: 'Total Clicks',
-                  data: clicksOverTime.total,
-                  borderColor: 'black',
-                  borderWidth: 1,
-                  fill: false,
-                  showLine: false,
-                }
-              ]
-            },
-            options: {
-              scales: {
-                x: {
-                  type: 'linear',
-                  position: 'bottom',
-                  min: 0,
-                  max: Math.floor((sessionEndTime - sessionStartTime) / 1000),
-                  title: {
-                    display: true,
-                    text: 'Time Elapsed (seconds)'
-                  }
-                },
-                y: {
-                  beginAtZero: true
-                }
-              }
-            }
-          })
         }
 
         function fetchDataForSession(sessionId) {
@@ -120,5 +98,4 @@ html(lang="en")
           each sessionId in data
             option(value=sessionId.sessionId)= sessionId.sessionId
       .graph-container
-        h2 Click Distribution
-        canvas#clickDistributionChart(width="800", height="600")
+        div#clickGraph
