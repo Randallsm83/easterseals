@@ -165,9 +165,6 @@ app.get('/graphs/:sessionId', async (req, res) => {
     })
 
     const responseData = {
-      // sessionConfig: sessionConfig ? sessionConfig.config : null,
-      // startEvent: startEvent ? startEvent : null,
-      // endEvent: endEvent ? endEvent : null,
       sessionConfig,
       startEvent,
       endEvent,

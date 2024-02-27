@@ -6,7 +6,8 @@ body {
 }
 
 .main-container {
-  max-width: 800px;
+  /* max-width: 800px; */
+  max-width: 75%;
   margin: 2rem auto;
   padding: 20px;
   background-color: #fff;
@@ -137,24 +138,9 @@ legend {
   margin-top: 20px; /* Add space between the dropdown and the graph */
 }
 
-.line {
-  fill: none;
-  stroke-width: 2;
-}
-.marker {
-    fill: #ff0000;
-}
-.tooltip {
-    position: absolute;
-    text-align: center;
-    width: 120px;
-    height: auto;
-    padding: 2px;
-    font: 12px sans-serif;
-    background: lightsteelblue;
-    border: 0px;
-    border-radius: 8px;
-    pointer-events: none;
+.dot.left { fill: green; }
+.dot.middle { fill: red; }
+.dot.right { fill: blue; }
 
 .error-message {
   color: red;

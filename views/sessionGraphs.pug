@@ -13,67 +13,166 @@ html(lang="en")
           fetchDataForSession(event.target.value)
         })
 
-        function updateCharts(sessionData) {
-          const transformedData = sessionData.allClicks.map(click => {
-            const valueObj = JSON.parse(click.value);
-            return {
-                timestamp: new Date(click.timestamp),
-                totalClicks: valueObj.total, // Cumulative total clicks
-                left: valueObj.left,
-                middle: valueObj.middle,
-                right: valueObj.right,
-                awardedPoints: valueObj.awardedPoints, // Points awarded for this specific click
-                totalPoints: valueObj.pointsCounter // Cumulative total points
-            };
-          });
-          console.log(transformedData)
 
-          const margin = {top: 20, right: 20, bottom: 30, left: 50},
+        function generateClickTimelineGraph1(parsedClicks) {
+          let svg = d3.select("#clickTimeline1 svg")
+          if (svg) svg.remove();
+
+          const margin = { top: 20, right: 20, bottom: 30, left: 50 },
             width = 960 - margin.left - margin.right,
             height = 500 - margin.top - margin.bottom;
 
-          // Append the svg object to the body of the page
-          const svg = d3.select("#clickGraph")
-            .append("svg")
-              .attr("width", width + margin.left + margin.right)
-              .attr("height", height + margin.top + margin.bottom)
-            .append("g")
-              .attr("transform",
-                    "translate(" + margin.left + "," + margin.top + ")");
+          svg = d3.select("#clickTimeline1").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-          // X scale will use the timestamp of each click event
-          const x = d3.scaleTime()
-            .domain(d3.extent(transformedData, d => d.timestamp))
-            .range([ 0, width ]);
-          svg.append("g")
-            .attr("transform", "translate(0," + height + ")")
-            .call(d3.axisBottom(x));
+          const x = d3.scaleLinear()
+            .domain([0, d3.max(parsedClicks, d => d.timeElapsed)])
+            .range([0, width]);
 
-          // Add Y axis for clicks
           const yLeft = d3.scaleLinear()
-            .domain([0, d3.max(transformedData, d => Math.max(d.left, d.middle, d.right))])
-            .range([ height, 0 ]);
-          svg.append("g")
-            .call(d3.axisLeft(yLeft));
+            .domain([0, d3.max(parsedClicks, d => d[d.buttonClicked])])
+            .range([height, 0]);
 
-          // Optional: Add Y axis for points on the right
           const yRight = d3.scaleLinear()
-            .domain([0, d3.max(transformedData, d => d.awardedPoints)])
-            .range([ height, 0 ]);
-          svg.append("g")
-            .attr("transform", `translate(${width},0)`)
-            .call(d3.axisRight(yRight));
+            .domain([0, d3.max(parsedClicks, d => d.total)])
+            .range([height, 0]);
 
-          // Add paths for each button type
-          // Example for left clicks
-          const lineLeft = d3.line()
-            .x(d => x(d.timestamp))
-            .y(d => yLeft(d.left));
-          svg.append("path")
-            .datum(transformedData)
-            .attr("fill", "none")
-            .attr("stroke", "green")
-            .attr("d", lineLeft);
+          // X Axis
+          svg.append("g")
+            .attr("transform", `translate(0, ${height})`)
+            .call(d3.axisBottom(x)
+              .ticks(10)
+              .tickFormat(d3.format('.0f')))
+          .append("text") // Adding label for the x-axis
+            .attr("fill", "#000")
+            .attr("x", width / 2)
+            .attr("y", margin.bottom - 5)
+            .attr("text-anchor", "middle")
+            .text("Time Elapsed (seconds)");
+
+          // Y Left Axis
+          svg.append("g")
+            .call(d3.axisLeft(yLeft))
+          .append("text") // Adding label for the y-axis
+            .attr("fill", "#000")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -margin.left)
+            .attr("x", -height / 2)
+            .attr("dy", "1em")
+            .attr("text-anchor", "middle")
+            .text("Clicks Per Button");
+
+          // Y Right Axis
+          svg.append("g")
+            .attr("transform", `translate(${width}, 0)`)
+            .call(d3.axisRight(yRight))
+          .append("text") // Adding label for the y-axis
+            .attr("fill", "#000")
+            .attr("transform", "rotate(-90)")
+            .attr("y", width + margin.right / 2)
+            .attr("x", -height / 2)
+            .attr("dy", "-1.8em")
+            .attr("text-anchor", "middle")
+            .text("Total Clicks");
+
+          // Create the scatter plot
+          svg.selectAll(".dot.left")
+            .data(parsedClicks.filter(d => d.buttonClicked === 'left'))
+          .enter().append("circle")
+            .attr("class", d => 'dot left')
+            .attr("r", 3)
+            .attr("cx", d => x(d.timeElapsed))
+            .attr("cy", d => yLeft(d.left));
+          svg.selectAll(".dot.middle")
+            .data(parsedClicks.filter(d => d.buttonClicked === 'middle'))
+          .enter().append("circle")
+            .attr("class", d => 'dot middle')
+            .attr("r", 3)
+            .attr("cx", d => x(d.timeElapsed))
+            .attr("cy", d => yLeft(d.middle));
+          svg.selectAll(".dot.right")
+            .data(parsedClicks.filter(d => d.buttonClicked === 'right'))
+          .enter().append("circle")
+            .attr("class", d => 'dot right')
+            .attr("r", 3)
+            .attr("cx", d => x(d.timeElapsed))
+            .attr("cy", d => yLeft(d.right));
+        }
+
+        function generateClickTimelineGraph2(parsedClicks) {
+          let svg = d3.select("#clickTimeline2 svg")
+          if (svg) svg.remove();
+
+          const margin = { top: 20, right: 20, bottom: 30, left: 50 },
+            width = 960 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
+
+          svg = d3.select("#clickTimeline2").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+          const x = d3.scaleLinear()
+            .domain([0, d3.max(parsedClicks, d => d.timeElapsed)])
+            .range([0, width]);
+
+          const y = d3.scaleLinear()
+            .domain([0, d3.max(parsedClicks, d => d.total)])
+            .range([height, 0]);
+
+          // X Axis
+          svg.append("g")
+            .attr("transform", `translate(0, ${height})`)
+            .call(d3.axisBottom(x)
+              .ticks(10)
+              .tickFormat(d3.format('.0f')))
+          .append("text") // Adding label for the x-axis
+            .attr("fill", "#000")
+            .attr("x", width / 2)
+            .attr("y", margin.bottom - 5)
+            .attr("text-anchor", "middle")
+            .text("Time Elapsed (seconds)");
+
+          // Y Left Axis
+          svg.append("g")
+            .call(d3.axisLeft(y))
+          .append("text") // Adding label for the y-axis
+            .attr("fill", "#000")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -margin.left)
+            .attr("x", -height / 2)
+            .attr("dy", "1em")
+            .attr("text-anchor", "middle")
+            .text("Total Clicks");
+
+          // Create the scatter plot
+          svg.selectAll(".dot")
+            .data(parsedClicks)
+          .enter().append("circle")
+            .attr("class", d => `dot ${d.buttonClicked}`)
+            .attr("r", 3)
+            .attr("cx", d => x(d.timeElapsed))
+            .attr("cy", d => y(d.total));
+        }
+
+        function updateCharts(sessionData) {
+          const startTime = new Date(sessionData.startEvent.timestamp)
+          const parsedClicks = sessionData.allClicks.map(click => {
+            const valueObj = JSON.parse(click.value);
+            const thisTimestamp = new Date(click.timestamp)
+            return {
+                ...valueObj,
+                timestamp: thisTimestamp,
+                timeElapsed: (thisTimestamp - startTime) / 1000
+            };
+          });
+
+          generateClickTimelineGraph1(parsedClicks)
+          generateClickTimelineGraph2(parsedClicks)
 
         }
 
@@ -98,4 +197,5 @@ html(lang="en")
           each sessionId in data
             option(value=sessionId.sessionId)= sessionId.sessionId
       .graph-container
-        div#clickGraph
+        div#clickTimeline1
+        div#clickTimeline2
