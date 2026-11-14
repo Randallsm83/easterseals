@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+# Verification harness for the Easterseals research tracker (Express + Pug + SQLite).
+# Runs the checkout's app.js from a scratch run directory so es.db never lands in the repo.
+set -euo pipefail
+
+SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$SCRIPTS/../../../.." && pwd)"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/verify-easterseals"
+DEPS="$STATE/deps"
+PW_VERSION="1.65.1"
+PORT_MIN=41500
+PORT_MAX=41599
+
+die() { echo "control-easterseals: $*" >&2; exit 1; }
+command -v node >/dev/null || die "node not on PATH; run: source ~/.config/zsh/agent-env.zsh"
+
+run_dir() { echo "$STATE/runs/$1"; }
+evidence_dir() { echo "$STATE/evidence/$1"; }
+need_run() {
+  [ -n "${1:-}" ] || die "missing RUN_ID"
+  [ -d "$(run_dir "$1")" ] || die "no run dir $(run_dir "$1") (already cleaned up?)"
+}
+
+# Runtime deps live outside the checkout: repo dependency ranges + playwright-core.
+cmd_deps() {
+  local specs stamp
+  specs="$(node -e 'const d=require(process.argv[1]).dependencies;console.log(Object.entries(d).map(([k,v])=>k+"@"+v).join(" "))' "$REPO/package.json") playwright-core@$PW_VERSION"
+  stamp="$DEPS/.specs"
+  if [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$specs" ] && [ -d "$DEPS/node_modules/sqlite3" ]; then
+    echo "deps ok: $DEPS ($specs)"; return
+  fi
+  mkdir -p "$DEPS"
+  [ -f "$DEPS/package.json" ] || echo '{"private":true}' >"$DEPS/package.json"
+  # shellcheck disable=SC2086
+  (cd "$DEPS" && npm install --no-package-lock --no-audit --no-fund $specs >/dev/null)
+  NODE_PATH="$DEPS/node_modules" node -e 'require("sqlite3");require("express");require("pug");require("playwright-core")'
+  echo "$specs" >"$stamp"
+  echo "deps installed: $DEPS ($specs)"
+}
+
+pid_of() { cat "$(run_dir "$1")/pid"; }
+port_of() { cat "$(run_dir "$1")/port"; }
+alive() { kill -0 "$1" 2>/dev/null; }
+listening_pid() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | head -1; }
+
+pick_port() {
+  local p
+  for ((p = PORT_MIN; p <= PORT_MAX; p++)); do
+    [ -z "$(listening_pid "$p")" ] && { echo "$p"; return; }
+  done
+  die "no free port in $PORT_MIN-$PORT_MAX"
+}
+
+cmd_launch() {
+  local id="${1:-$(date +%Y%m%dT%H%M%S)-$$}" dir port pid i
+  cmd_deps >/dev/null
+  dir="$(run_dir "$id")"
+  [ -e "$dir" ] && die "run $id already exists"
+  mkdir -p "$dir" "$(evidence_dir "$id")"
+  # app.js resolves views/, public/ and es.db against its cwd.
+  ln -s "$REPO/views" "$dir/views"
+  ln -s "$REPO/public" "$dir/public"
+  port="${VERIFY_PORT:-$(pick_port)}"
+  (( port >= PORT_MIN && port <= PORT_MAX )) || die "port $port outside $PORT_MIN-$PORT_MAX"
+  echo "$port" >"$dir/port"
+  (cd "$dir"
+   NODE_PATH="$DEPS/node_modules" VERIFY_PORT="$port" nohup node -r "$SCRIPTS/remap-port.cjs" "$REPO/app.js" >"$dir/app.log" 2>&1 &
+   echo $! >"$dir/pid")
+  pid="$(pid_of "$id")"
+  # Ready = both tables created (async after connect) AND the setup form renders on our port.
+  for i in $(seq 1 100); do
+    alive "$pid" || { cat "$dir/app.log" >&2; die "app exited during launch"; }
+    if grep -q 'Session event log table setup is ready.' "$dir/app.log" &&
+       curl -fsS "http://127.0.0.1:$port/" 2>/dev/null | grep -q '<title>Setup Form</title>'; then
+      echo "RUN_ID=$id"
+      echo "URL=http://127.0.0.1:$port"
+      echo "PID=$pid"
+      echo "DB=$dir/es.db"
+      echo "EVIDENCE=$(evidence_dir "$id")"
+      return
+    fi
+    sleep 0.1
+  done
+  cat "$dir/app.log" >&2
+  die "not ready after 10s (pid $pid still running; run: $0 cleanup $id)"
+}
+
+cmd_doctor() {
+  need_run "${1:-}"
+  local id="$1" dir pid port lpid cwd ok=1
+  dir="$(run_dir "$id")"; pid="$(pid_of "$id")"; port="$(port_of "$id")"
+  check() { if eval "$2"; then echo "ok   $1"; else echo "FAIL $1"; ok=0; fi; }
+  check "process $pid alive" 'alive "$pid"'
+  check "process $pid runs $REPO/app.js" 'ps -o command= -p "$pid" | grep -qF "$REPO/app.js"'
+  cwd="$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')"
+  check "process cwd is run dir (cwd=$cwd)" '[ "$cwd" = "$dir" ] || [ "$(cd "$dir" && pwd -P)" = "$cwd" ]'
+  lpid="$(listening_pid "$port")"
+  check "port $port owned by pid $pid (listener=${lpid:-none})" '[ "$lpid" = "$pid" ]'
+  check "GET / renders Setup Form" 'curl -fsS "http://127.0.0.1:$port/" | grep -q "<title>Setup Form</title>"'
+  check "scratch DB has both tables" 'NODE_PATH="$DEPS/node_modules" node "$SCRIPTS/drive.cjs" tables --db "$dir/es.db" | grep -qx "session_configuration,session_event_log"'
+  check "repo es.db untouched (absent)" '[ ! -e "$REPO/es.db" ]'
+  echo "repo revision: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+  [ "$ok" = 1 ] || die "doctor failed for run $id"
+  echo "doctor: run $id healthy at http://127.0.0.1:$port"
+}
+
+cmd_drive() {
+  need_run "${1:-}"; [ -n "${2:-}" ] || die "usage: drive RUN_ID <journey>"
+  local id="$1" journey="$2" dir
+  dir="$(run_dir "$id")"
+  NODE_PATH="$DEPS/node_modules" node "$SCRIPTS/drive.cjs" "$journey" \
+    --base "http://127.0.0.1:$(port_of "$id")" --db "$dir/es.db" \
+    --out "$(evidence_dir "$id")/$journey" --session "verify-$id-$journey"
+}
+
+cmd_db() {
+  need_run "${1:-}"
+  NODE_PATH="$DEPS/node_modules" node "$SCRIPTS/drive.cjs" dump --db "$(run_dir "$1")/es.db" ${2:+--session "$2"}
+}
+
+cmd_stop() {
+  need_run "${1:-}"
+  local id="$1" dir pid i
+  dir="$(run_dir "$id")"; pid="$(pid_of "$id")"
+  if alive "$pid" && ps -o command= -p "$pid" | grep -qF "$REPO/app.js"; then
+    kill "$pid"
+    for i in $(seq 1 50); do alive "$pid" || break; sleep 0.1; done
+    alive "$pid" && kill -9 "$pid"
+    echo "stopped pid $pid"
+  else
+    echo "pid $pid not running (or not ours); nothing to stop"
+  fi
+  cp "$dir/app.log" "$(evidence_dir "$id")/app.log" 2>/dev/null || true
+}
+
+cmd_cleanup() {
+  need_run "${1:-}"
+  local id="$1"
+  cmd_stop "$id"
+  rm -rf "$(run_dir "$id")"
+  echo "removed $(run_dir "$id")"
+  echo "evidence kept at $(evidence_dir "$id"):"
+  find "$(evidence_dir "$id")" -type f | sort
+}
+
+case "${1:-}" in
+  deps) cmd_deps ;;
+  launch) shift; cmd_launch "$@" ;;
+  doctor) shift; cmd_doctor "$@" ;;
+  drive) shift; cmd_drive "$@" ;;
+  db) shift; cmd_db "$@" ;;
+  stop) shift; cmd_stop "$@" ;;
+  cleanup) shift; cmd_cleanup "$@" ;;
+  *) echo "usage: control-easterseals deps | launch [RUN_ID] | doctor RUN_ID | drive RUN_ID <setup|points-session|timed-session|graphs> | db RUN_ID [sessionId] | stop RUN_ID | cleanup RUN_ID" >&2; exit 2 ;;
+esac
